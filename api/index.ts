@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import { ApiError } from '../src/utils/error.js'
 import type { ErrorRequestHandler } from 'express'
+import superadminRoutes from '../src/utils/routes/superAdmin/puzzleRoutes.js'
 
 const port = 3005
 const app = express()
@@ -15,9 +16,6 @@ const corsOptions = {
 }
 app.use(cors(corsOptions))
 
-
-app.use(router)
-
 app.listen(port, () => {
     console.log(`API listening on PORT ${port} `)
 })
@@ -26,6 +24,15 @@ router.get('/api/test', async (req, res) => {
     res.jsonp({data: 'Hello World!'})
 })
 
+// Routes for superadmins
+const superadminRouter = express.Router()
+// TODO: write superadmin middleware
+// superadminRouter.use(assertSuperAdminMiddleware)
+
+superadminRouter.use('/api/superadmin', superadminRoutes)
+
+router.use(superadminRouter)
+app.use('/', router)
 
 // ERROR HANDLER
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
