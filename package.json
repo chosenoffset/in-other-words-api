@@ -19,8 +19,10 @@
     "dev": "nodemon --exec tsx ./api/index.ts"
   },
   "dependencies": {
+    "@clerk/express": "^1.7.29",
     "@prisma/client": "^6.15.0",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "nodemon": "^3.1.10"
   },
