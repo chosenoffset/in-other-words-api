@@ -38,7 +38,7 @@ router.get('/api/test', async (req, res) => {
 
 // Public routes
 const publicRouter = express.Router()
-publicRouter.use('/api/register', registerRoutes)
+publicRouter.use('/register', registerRoutes)
 
 // Authenticated routes
 const appRouter = express.Router()
@@ -49,11 +49,11 @@ const superadminRouter = express.Router()
 superadminRouter.use(authenticateUserMiddleware)
 superadminRouter.use(assertSuperadminMiddleware)
 
-superadminRouter.use('/api/superadmin', puzzleRoutes)
+superadminRouter.use('/puzzles', puzzleRoutes)
 
-router.use(publicRouter)
-router.use(appRouter)
-router.use(superadminRouter)
+router.use('/api/public', publicRouter)
+router.use('/api/app', appRouter)
+router.use('/api/superadmin', superadminRouter)
 app.use('/', router)
 
 // ERROR HANDLER
