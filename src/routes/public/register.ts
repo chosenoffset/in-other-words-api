@@ -1,4 +1,4 @@
-import { createUserFromClerkId } from "../../../services/user.js";
+import { createUserFromClerkId } from "../../services/user.js";
 import { Router, Request, Response } from "express";
 
 const router = Router()

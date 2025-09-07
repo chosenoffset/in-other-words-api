@@ -3,13 +3,13 @@ import express from 'express'
 import cors from 'cors'
 import { ApiError } from '../src/utils/error.js'
 import type { ErrorRequestHandler } from 'express'
-import puzzleRoutes from '../src/utils/routes/superAdmin/puzzleRoutes.js'
+import puzzleRoutes from '../src/routes/superAdmin/puzzleRoutes.js'
 import 'dotenv/config'
 import { clerkMiddleware } from '@clerk/express'
 import { paramValidator, notEmpty, isClerkId } from '../src/middlewares/paramValidators.js'
 import authenticateUserMiddleware from '../src/middlewares/getUserMiddleware.js'
 import assertSuperadminMiddleware from '../src/middlewares/assertSuperadminMiddleware.js'
-import registerRoutes from '../src/utils/routes/public/register.js'
+import registerRoutes from '../src/routes/public/register.js'
 
 const port = 3005
 const app = express()
