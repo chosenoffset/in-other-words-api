@@ -15,22 +15,22 @@ router.get('puzzles/:id', async (req: Request<{ id: string }>, res: Response) =>
 })
 
 router.post('/puzzles', async (req: Request, res: Response) => {
-    const puzzle = await createPuzzle(req.body)
+    const puzzle = await createPuzzle(req.body, res.locals.user)
     res.jsonp(puzzle)
 })
 
 router.put('/puzzles/:id', async (req: Request<{ id: string }>, res: Response) => {
-    const puzzle = await updatePuzzle(req.params.id, req.body)
+    const puzzle = await updatePuzzle(req.params.id, req.body, res.locals.user)
     res.jsonp(puzzle)
 })
 
 router.delete('/puzzles/:id', async (req: Request<{ id: string }>, res: Response) => {
-    const puzzle = await softDeletePuzzle(req.params.id)
+    const puzzle = await softDeletePuzzle(req.params.id, res.locals.user)
     res.jsonp(puzzle)
 })
 
 router.delete('/puzzles/hard-delete/:id', async (req: Request<{ id: string }>, res: Response) => {
-    const puzzle = await deletePuzzle(req.params.id)
+    const puzzle = await deletePuzzle(req.params.id, res.locals.user)
     res.jsonp(puzzle)
 })
 

@@ -1,6 +1,7 @@
-import { Puzzle } from '@prisma/client'
+import { Puzzle, User } from '@prisma/client'
 import { prisma } from '../config/prisma.js'
 import { assert } from '../utils/assert.js'
+import { isSuperadmin } from '../utils/auth.js'
 
 export async function getAllPuzzles() {
     const puzzles = await prisma.puzzle.findMany()
@@ -18,7 +19,8 @@ export async function getPuzzleById(id: string) {
     return puzzle
 }
 
-export async function createPuzzle(puzzle: Puzzle) {
+export async function createPuzzle(puzzle: Puzzle, loggedInUser: User) {
+    isSuperadmin(loggedInUser)
     const newPuzzle = await prisma.puzzle.create({
         data: puzzle
     })
@@ -27,7 +29,8 @@ export async function createPuzzle(puzzle: Puzzle) {
     return newPuzzle
 }
 
-export async function updatePuzzle(id: string, puzzle: Puzzle) {
+export async function updatePuzzle(id: string, puzzle: Puzzle, loggedInUser: User) {
+    isSuperadmin(loggedInUser)
     const updatedPuzzle = await prisma.puzzle.update({
         where: { id },
         data: puzzle
@@ -37,7 +40,8 @@ export async function updatePuzzle(id: string, puzzle: Puzzle) {
     return updatedPuzzle
 }
 
-export async function deletePuzzle(id: string) {
+export async function deletePuzzle(id: string, loggedInUser: User) {
+    isSuperadmin(loggedInUser)
     const deletedPuzzle = await prisma.puzzle.delete({
         where: { id }
     })
@@ -46,7 +50,8 @@ export async function deletePuzzle(id: string) {
     return deletedPuzzle
 }
 
-export async function softDeletePuzzle(id: string) {
+export async function softDeletePuzzle(id: string, loggedInUser: User) {
+    isSuperadmin(loggedInUser)
     const softDeletedPuzzle = await prisma.puzzle.update({
         where: { id },
         data: { archived: true }
