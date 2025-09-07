@@ -27,7 +27,7 @@ model Puzzle {
   id        String    @id @default(uuid())
   question  String
   answer    String
-  hint      String
+  hints     String[]
   // category  String (Let's make an enum for this when we implement)
   // difficulty String (Let's make an enum for this when we implement)
 
