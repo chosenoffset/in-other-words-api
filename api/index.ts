@@ -9,7 +9,8 @@ import { clerkMiddleware } from '@clerk/express'
 import { paramValidator, notEmpty, isClerkId } from '../src/middlewares/paramValidators.js'
 import authenticateUserMiddleware from '../src/middlewares/getUserMiddleware.js'
 import assertSuperadminMiddleware from '../src/middlewares/assertSuperadminMiddleware.js'
-import registerRoutes from '../src/routes/public/register.js'
+import registerRoutes from '../src/routes/app/register.js'
+import userRoutes from '../src/routes/app/user.js'
 
 const port = 3005
 const app = express()
@@ -38,11 +39,12 @@ router.get('/api/test', async (req, res) => {
 
 // Public routes
 const publicRouter = express.Router()
-publicRouter.use('/register', registerRoutes)
 
 // Authenticated routes
 const appRouter = express.Router()
 appRouter.use(authenticateUserMiddleware)
+appRouter.use('/users', userRoutes)
+appRouter.use('/register', registerRoutes)
 
 // Superadmin routes
 const superadminRouter = express.Router()

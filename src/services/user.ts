@@ -1,10 +1,17 @@
 import { prisma } from '../config/prisma.js'
 import { assert } from '../utils/assert.js'
+import { User, UserRole } from '@prisma/client'
+import { SessionAuthObject } from '@clerk/express'
+import { ApiError } from '../utils/error.js'
 
-export async function createUserFromClerkId(clerkId: string) {
+export async function createUserFromClerkId(clerkUser: SessionAuthObject) {
+    if (!clerkUser || !clerkUser.userId) {
+        throw new ApiError(401, 'Unauthorized')
+    }
+    
     const existingUser = await prisma.user.findFirst({
         where: {
-            clerkId: clerkId
+            clerkId: clerkUser.userId
         }
     })
     
@@ -14,11 +21,15 @@ export async function createUserFromClerkId(clerkId: string) {
     
     const newUser = await prisma.user.create({
         data: {
-            clerkId: clerkId,
+            clerkId: clerkUser.userId,
             role: 'USER',
         }
     })
     assert(newUser, 'Failed to create user')
 
     return newUser
+}
+
+export async function isSuperadmin(user: User) {
+    return user.role === UserRole.SUPERADMIN
 }
