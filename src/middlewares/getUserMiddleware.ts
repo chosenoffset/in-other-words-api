@@ -28,9 +28,9 @@ export default async function authenticateUserMiddleware(req: Request, res: Resp
       clerkId: auth.userId!
     }
   })
-  
-  assert(user, 'User not found', 404)
 
   res.locals.user = user;
+  res.locals.clerkUser = auth;
+
   next();
 }

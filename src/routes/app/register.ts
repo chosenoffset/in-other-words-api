@@ -3,8 +3,8 @@ import { Router, Request, Response } from "express";
 
 const router = Router()
 
-router.post('/:clerkId', async (req: Request, res: Response) => {
-    const user = await createUserFromClerkId(req.params.clerkId!)
+router.post('/', async (req: Request, res: Response) => {
+    const user = await createUserFromClerkId(res.locals.clerkUser)
     return res.jsonp(user)
 })
 
