@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from "express"
-import { getAuth } from "@clerk/express"
-import { prisma } from "../../src/config/prisma.js"
-import { assert } from "../../src/utils/assert.js"
+import {NextFunction, Request, Response} from "express"
+import {getAuth} from "@clerk/express"
+import {prisma} from "../config/prisma.js"
+import {assert} from "../utils/assert.js"
 
 const anonymousRoutes = [
     '/api/user/verify',

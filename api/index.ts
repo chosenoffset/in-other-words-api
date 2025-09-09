@@ -11,11 +11,13 @@ import authenticateUserMiddleware from '../src/middlewares/getUserMiddleware.js'
 import assertSuperadminMiddleware from '../src/middlewares/assertSuperadminMiddleware.js'
 import registerRoutes from '../src/routes/app/register.js'
 import userRoutes from '../src/routes/app/user.js'
+import puzzleOfTheDayRoutes from '../src/routes/public/puzzleOfTheDayRoutes.js'
 
 const port = 3005
 const app = express()
 const router = express.Router()
 
+app.use(express.json())
 app.use(clerkMiddleware())
 
 const corsOptions = {
@@ -39,6 +41,7 @@ router.get('/api/test', async (req, res) => {
 
 // Public routes
 const publicRouter = express.Router()
+publicRouter.use('/puzzle-of-the-day', puzzleOfTheDayRoutes)
 
 // Authenticated routes
 const appRouter = express.Router()
