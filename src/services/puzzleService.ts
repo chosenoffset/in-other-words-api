@@ -60,7 +60,16 @@ export async function getPuzzleOfTheDay() {
     const daysSinceEpoch = Math.floor((today.getTime() - epochDate.getTime()) / (1000 * 60 * 60 * 24))
     const puzzleIndex = daysSinceEpoch % allPuzzles.length
     
-    return allPuzzles[puzzleIndex]
+    const fullPuzzleOfTheDay = allPuzzles[puzzleIndex]
+    assert(fullPuzzleOfTheDay, 'No puzzle found')
+
+    // Don't return the answer here
+    const puzzleOfTheDay = {
+        id: fullPuzzleOfTheDay.id,
+        question: fullPuzzleOfTheDay.question,
+        hints: fullPuzzleOfTheDay.hints,
+    }
+    return puzzleOfTheDay
 }
 
 export async function getPuzzleById(id: string) {
@@ -166,6 +175,9 @@ export async function getScheduledPuzzles(loggedInUser: User) {
 }
 
 export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: string) {
+    assert(submittedAnswer, 'answer is required')
+    assert(typeof submittedAnswer === 'string', 'answer must be a string')
+    
     const puzzle = await prisma.puzzle.findUnique({
         where: { 
             id: puzzleId,
