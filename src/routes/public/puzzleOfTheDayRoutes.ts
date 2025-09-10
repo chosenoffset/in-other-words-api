@@ -1,6 +1,5 @@
 import express from 'express'
 import { getPuzzleOfTheDay, submitPuzzleAnswer } from '../../services/puzzleService.js'
-import { ApiError } from '../../utils/error.js'
 
 const router = express.Router()
 
