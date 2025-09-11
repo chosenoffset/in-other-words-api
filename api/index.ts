@@ -11,7 +11,9 @@ import authenticateUserMiddleware from '../src/middlewares/getUserMiddleware.js'
 import assertSuperadminMiddleware from '../src/middlewares/assertSuperadminMiddleware.js'
 import registerRoutes from '../src/routes/app/register.js'
 import userRoutes from '../src/routes/app/user.js'
+import attemptConversionRoutes from '../src/routes/app/attemptConversionRoutes.js'
 import puzzleOfTheDayRoutes from '../src/routes/public/puzzleOfTheDayRoutes.js'
+import { puzzleSubmissionLimiter, generalApiLimiter } from '../src/middlewares/rateLimitMiddleware.js'
 
 const port = 3005
 const app = express()
@@ -26,6 +28,9 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization', 'clerk-session-id', ]
 }
 app.use(cors(corsOptions))
+
+// Apply general rate limiting to all routes
+app.use(generalApiLimiter)
 
 // Global param validation for common route params
 app.param('id', paramValidator('id', notEmpty, 'ID is required'))
@@ -48,6 +53,7 @@ const appRouter = express.Router()
 appRouter.use(authenticateUserMiddleware)
 appRouter.use('/users', userRoutes)
 appRouter.use('/register', registerRoutes)
+appRouter.use('/attempts', attemptConversionRoutes)
 
 // Superadmin routes
 const superadminRouter = express.Router()

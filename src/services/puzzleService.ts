@@ -174,10 +174,15 @@ export async function getScheduledPuzzles(loggedInUser: User) {
     return scheduledPuzzles
 }
 
-export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: string) {
+export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: string, userContext: {
+    userId?: string
+    userFingerprint?: string
+    ipAddress?: string
+    userAgent?: string
+}) {
     assert(submittedAnswer, 'answer is required')
     assert(typeof submittedAnswer === 'string', 'answer must be a string')
-    
+
     const puzzle = await prisma.puzzle.findUnique({
         where: { 
             id: puzzleId,
@@ -188,16 +193,61 @@ export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: stri
     
     assert(puzzle, 'Puzzle not found or not available')
     
+    // Check existing attempts and limits
+    const { attemptCount, remainingGuesses } = await getAttemptStatus(puzzleId, userContext)
+    const maxGuesses = userContext.userId ? 5 : 3
+
+    assert(remainingGuesses > 0, `No guesses remaining. You have used all ${maxGuesses} guesses for this puzzle.`)
+
     // Normalize answers for comparison (trim whitespace, case insensitive)
     const normalizedSubmitted = submittedAnswer.trim().toLowerCase()
     const normalizedCorrect = puzzle.answer.trim().toLowerCase()
-    
     const isCorrect = normalizedSubmitted === normalizedCorrect
     
+    // Record the attempt
+    await prisma.puzzleAttempt.create({
+        data: {
+            puzzleId,
+            userId: userContext.userId || null,
+            userFingerprint: userContext.userFingerprint || null,
+            submittedAnswer: normalizedSubmitted,
+            isCorrect,
+            ipAddress: userContext.ipAddress || null,
+            userAgent: userContext.userAgent || null
+        }
+    })
+
+    // Get updated remaining guesses
+    const updatedRemainingGuesses = remainingGuesses - 1
+
     return {
         isCorrect,
         puzzleId: puzzle.id,
         submittedAnswer,
+        remainingGuesses: updatedRemainingGuesses,
+        maxGuesses,
         // Don't return the correct answer in the response for security
+    }
+}
+
+export async function getAttemptStatus(
+    puzzleId: string,
+    userContext: { userId?: string; userFingerprint?: string }
+) {
+    const whereClause = userContext.userId
+        ? { puzzleId, userId: userContext.userId }
+        : { puzzleId, userFingerprint: userContext.userFingerprint }
+
+    const attemptCount = await prisma.puzzleAttempt.count({
+        where: whereClause
+    })
+
+    const maxGuesses = userContext.userId ? 5 : 3
+    const remainingGuesses = Math.max(0, maxGuesses - attemptCount)
+
+    return {
+        attemptCount,
+        remainingGuesses,
+        maxGuesses
     }
 }
