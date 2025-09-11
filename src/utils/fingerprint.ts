@@ -19,15 +19,38 @@ export function generateAnonymousFingerprint(ipAddress: string, puzzleId: string
         .substring(0, 32)
 }
 
-export function extractUserContext(req: Request, res: Response): UserContext {
+export function extractUserContext(req: Request, res: Response, puzzleId: string): UserContext {
     const userId = res.locals?.user?.id
-    const ipAddress = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for']?.split(',')[0]?.trim()
+    let ipAddress = ""
     const userAgent = req.headers['user-agent'] || 'unknown'
+
+    if (req.ip !== undefined) {
+        ipAddress = req.ip
+    } else {
+        const headerAddress = req.headers['x-forwarded-for']
+        if (headerAddress !== undefined) {
+            if (typeof headerAddress === 'string') {
+                ipAddress = headerAddress
+            } else {
+                const arrayIP = headerAddress[0]
+                if (arrayIP !== undefined) {
+                    ipAddress = arrayIP
+                } else {
+                    throw new Error('Unable to determine IP address')
+                }
+            }
+        }
+    }
     
     const context: UserContext = {
         userId,
         ipAddress,
         userAgent
+    }
+
+    // For anonymous users, generate fingerprint
+    if (!context.userId && context.ipAddress) {
+        context.userFingerprint = generateAnonymousFingerprint(context.ipAddress, puzzleId)
     }
     
     return context

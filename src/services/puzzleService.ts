@@ -1,7 +1,9 @@
-import { Puzzle, User } from '@prisma/client'
-import { prisma } from '../config/prisma.js'
-import { assert } from '../utils/assert.js'
-import { isSuperadmin } from '../utils/auth.js'
+import {Prisma, Puzzle, User} from '@prisma/client'
+import {prisma} from '../config/prisma.js'
+import {assert} from '../utils/assert.js'
+import {isSuperadmin} from '../utils/auth.js'
+import {GUESS_LIMITS, UserContext} from "../utils/fingerprint.js";
+import {ApiError} from "../utils/error.js";
 
 export async function getAllPuzzles() {
     const puzzles = await prisma.puzzle.findMany()
@@ -13,7 +15,7 @@ export async function getAllPuzzles() {
 export async function getPuzzleOfTheDay() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    
+
     // First check for manually scheduled puzzle for today
     let puzzle = await prisma.puzzle.findFirst({
         where: {
@@ -22,23 +24,23 @@ export async function getPuzzleOfTheDay() {
             archived: false
         }
     })
-    
+
     if (puzzle) {
         return puzzle
     }
-    
+
     // Fallback to algorithmic selection
     const allPuzzles = await prisma.puzzle.findMany({
         where: {
             published: true,
             archived: false,
-            displayOrder: { not: null }
+            displayOrder: {not: null}
         },
         orderBy: {
             displayOrder: 'asc'
         }
     })
-    
+
     if (allPuzzles.length === 0) {
         // Final fallback to any published puzzle
         puzzle = await prisma.puzzle.findFirst({
@@ -50,31 +52,30 @@ export async function getPuzzleOfTheDay() {
                 createdAt: 'asc'
             }
         })
-        
+
         assert(puzzle, 'No published puzzles available')
         return puzzle
     }
-    
+
     // Use days since epoch to select puzzle deterministically
     const epochDate = new Date('2024-01-01')
     const daysSinceEpoch = Math.floor((today.getTime() - epochDate.getTime()) / (1000 * 60 * 60 * 24))
     const puzzleIndex = daysSinceEpoch % allPuzzles.length
-    
+
     const fullPuzzleOfTheDay = allPuzzles[puzzleIndex]
     assert(fullPuzzleOfTheDay, 'No puzzle found')
 
     // Don't return the answer here
-    const puzzleOfTheDay = {
+    return {
         id: fullPuzzleOfTheDay.id,
         question: fullPuzzleOfTheDay.question,
         hints: fullPuzzleOfTheDay.hints,
     }
-    return puzzleOfTheDay
 }
 
 export async function getPuzzleById(id: string) {
     const puzzle = await prisma.puzzle.findUnique({
-        where: { id }
+        where: {id}
     })
 
     assert(puzzle, 'Puzzle not found')
@@ -94,7 +95,7 @@ export async function createPuzzle(puzzle: Puzzle, loggedInUser: User) {
 export async function updatePuzzle(id: string, puzzle: Puzzle, loggedInUser: User) {
     isSuperadmin(loggedInUser)
     const updatedPuzzle = await prisma.puzzle.update({
-        where: { id },
+        where: {id},
         data: puzzle
     })
 
@@ -105,7 +106,7 @@ export async function updatePuzzle(id: string, puzzle: Puzzle, loggedInUser: Use
 export async function deletePuzzle(id: string, loggedInUser: User) {
     isSuperadmin(loggedInUser)
     const deletedPuzzle = await prisma.puzzle.delete({
-        where: { id }
+        where: {id}
     })
 
     assert(deletedPuzzle, 'Failed to delete puzzle')
@@ -115,8 +116,8 @@ export async function deletePuzzle(id: string, loggedInUser: User) {
 export async function softDeletePuzzle(id: string, loggedInUser: User) {
     isSuperadmin(loggedInUser)
     const softDeletedPuzzle = await prisma.puzzle.update({
-        where: { id },
-        data: { archived: true }
+        where: {id},
+        data: {archived: true}
     })
 
     assert(softDeletedPuzzle, 'Failed to soft delete puzzle')
@@ -125,85 +126,79 @@ export async function softDeletePuzzle(id: string, loggedInUser: User) {
 
 export async function schedulePuzzleForDate(id: string, date: Date, loggedInUser: User) {
     isSuperadmin(loggedInUser)
-    
+
     // Ensure no other puzzle is scheduled for this date
     const existingPuzzle = await prisma.puzzle.findFirst({
         where: {
             displayDate: date,
             archived: false,
-            id: { not: id }
+            id: {not: id}
         }
     })
-    
+
     assert(!existingPuzzle, 'Another puzzle is already scheduled for this date')
-    
+
     const scheduledPuzzle = await prisma.puzzle.update({
-        where: { id },
-        data: { displayDate: date }
+        where: {id},
+        data: {displayDate: date}
     })
-    
+
     assert(scheduledPuzzle, 'Failed to schedule puzzle')
     return scheduledPuzzle
 }
 
 export async function setDisplayOrder(id: string, displayOrder: number, loggedInUser: User) {
     isSuperadmin(loggedInUser)
-    
+
     const updatedPuzzle = await prisma.puzzle.update({
-        where: { id },
-        data: { displayOrder }
+        where: {id},
+        data: {displayOrder}
     })
-    
+
     assert(updatedPuzzle, 'Failed to set display order')
     return updatedPuzzle
 }
 
 export async function getScheduledPuzzles(loggedInUser: User) {
     isSuperadmin(loggedInUser)
-    
-    const scheduledPuzzles = await prisma.puzzle.findMany({
+
+    return prisma.puzzle.findMany({
         where: {
-            displayDate: { not: null },
+            displayDate: {not: null},
             archived: false
         },
         orderBy: {
             displayDate: 'asc'
         }
     })
-    
-    return scheduledPuzzles
 }
 
-export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: string, userContext: {
-    userId?: string
-    userFingerprint?: string
-    ipAddress?: string
-    userAgent?: string
-}) {
+export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: string, userContext: UserContext) {
     assert(submittedAnswer, 'answer is required')
-    assert(typeof submittedAnswer === 'string', 'answer must be a string')
 
     const puzzle = await prisma.puzzle.findUnique({
-        where: { 
+        where: {
             id: puzzleId,
             published: true,
-            archived: false 
+            archived: false
         }
     })
-    
+
     assert(puzzle, 'Puzzle not found or not available')
-    
+
     // Check existing attempts and limits
-    const { attemptCount, remainingGuesses } = await getAttemptStatus(puzzleId, userContext)
-    const maxGuesses = userContext.userId ? 5 : 3
+    const {remainingGuesses} = await getAttemptStatus(puzzleId, userContext)
+    const maxGuesses = userContext.userId ? GUESS_LIMITS.AUTHENTICATED : GUESS_LIMITS.ANONYMOUS
 
-    assert(remainingGuesses > 0, `No guesses remaining. You have used all ${maxGuesses} guesses for this puzzle.`)
+    if (remainingGuesses <= 0) {
+        throw new ApiError(400, `No guesses remaining. You have used all ${maxGuesses} guesses for this puzzle.`)
+    }
 
-    // Normalize answers for comparison (trim whitespace, case insensitive)
+    // Normalize answers for comparison (trim whitespace, case-insensitive)
     const normalizedSubmitted = submittedAnswer.trim().toLowerCase()
     const normalizedCorrect = puzzle.answer.trim().toLowerCase()
     const isCorrect = normalizedSubmitted === normalizedCorrect
-    
+
     // Record the attempt
     await prisma.puzzleAttempt.create({
         data: {
@@ -217,7 +212,6 @@ export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: stri
         }
     })
 
-    // Get updated remaining guesses
     const updatedRemainingGuesses = remainingGuesses - 1
 
     return {
@@ -230,19 +224,16 @@ export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: stri
     }
 }
 
-export async function getAttemptStatus(
-    puzzleId: string,
-    userContext: { userId?: string; userFingerprint?: string }
-) {
-    const whereClause = userContext.userId
-        ? { puzzleId, userId: userContext.userId }
-        : { puzzleId, userFingerprint: userContext.userFingerprint }
+export async function getAttemptStatus(puzzleId: string, userContext: UserContext) {
+    const whereClause: Prisma.PuzzleAttemptWhereInput = userContext.userId
+        ? {puzzleId, userId: userContext.userId}
+        : {puzzleId, userFingerprint: userContext.userFingerprint!}
 
     const attemptCount = await prisma.puzzleAttempt.count({
         where: whereClause
     })
 
-    const maxGuesses = userContext.userId ? 5 : 3
+    const maxGuesses = userContext.userId ? GUESS_LIMITS.AUTHENTICATED : GUESS_LIMITS.ANONYMOUS
     const remainingGuesses = Math.max(0, maxGuesses - attemptCount)
 
     return {
