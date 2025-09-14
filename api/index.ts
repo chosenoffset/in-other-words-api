@@ -13,7 +13,6 @@ import registerRoutes from '../src/routes/app/register.js'
 import userRoutes from '../src/routes/app/user.js'
 import attemptConversionRoutes from '../src/routes/app/attemptConversionRoutes.js'
 import puzzleOfTheDayRoutes from '../src/routes/public/puzzleOfTheDayRoutes.js'
-import { puzzleSubmissionLimiter, generalApiLimiter } from '../src/middlewares/rateLimitMiddleware.js'
 
 const port = 3005
 const app = express()
@@ -29,8 +28,6 @@ const corsOptions = {
 }
 app.use(cors(corsOptions))
 
-// Apply general rate limiting to all routes
-app.use(generalApiLimiter)
 
 // Global param validation for common route params
 app.param('id', paramValidator('id', notEmpty, 'ID is required'))
