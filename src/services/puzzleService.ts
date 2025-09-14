@@ -26,7 +26,13 @@ export async function getPuzzleOfTheDay() {
     })
 
     if (puzzle) {
-        return puzzle
+        // Don't return the answer for daily puzzle
+        return {
+            id: puzzle.id,
+            question: puzzle.question,
+            hints: puzzle.hints,
+            category: puzzle.category,
+        }
     }
 
     // Fallback to algorithmic selection
@@ -54,7 +60,13 @@ export async function getPuzzleOfTheDay() {
         })
 
         assert(puzzle, 'No published puzzles available')
-        return puzzle
+        // Don't return the answer for daily puzzle
+        return {
+            id: puzzle.id,
+            question: puzzle.question,
+            hints: puzzle.hints,
+            category: puzzle.category,
+        }
     }
 
     // Use days since epoch to select puzzle deterministically
@@ -70,6 +82,7 @@ export async function getPuzzleOfTheDay() {
         id: fullPuzzleOfTheDay.id,
         question: fullPuzzleOfTheDay.question,
         hints: fullPuzzleOfTheDay.hints,
+        category: fullPuzzleOfTheDay.category,
     }
 }
 
