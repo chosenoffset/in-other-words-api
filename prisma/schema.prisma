@@ -26,12 +26,71 @@ model User {
   id      String   @id @default(uuid())
   clerkId String   @unique
   role    UserRole @default(USER)
+  stripeCustomerId String? @unique
+  stripeSubscription StripeSubscription?
+  transactions Transaction[]
 
   archived  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   attempts PuzzleAttempt[]
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAST_DUE
+  PAUSED
+  TRIALING
+  UNPAID
+}
+
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+model StripeSubscription {
+  id String @id @default(uuid())
+  stripeSubscriptionId String? @unique
+  stripeSubscriptionItemId String? // Stripe subscription item ID for updating quantity
+  status SubscriptionStatus @default(INCOMPLETE)
+  billingInterval BillingInterval @default(MONTHLY)
+  quantity Int @default(0)
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  transactions Transaction[]
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+// TODO: we will probably have some one-off purchases here
+enum TransactionType {
+  SUBSCRIPTION
+}
+
+model Transaction {
+  id String @id @default(uuid())
+  checkoutSessionId String? @unique
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  amount Int
+  currency String
+  status TransactionStatus @default(PENDING)
+  type TransactionType @default(SUBSCRIPTION)
+  subscriptionId String?
+  subscription StripeSubscription? @relation(fields: [subscriptionId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Puzzle {
