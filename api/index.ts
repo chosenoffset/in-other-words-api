@@ -13,6 +13,8 @@ import registerRoutes from '../src/routes/app/register.js'
 import userRoutes from '../src/routes/app/user.js'
 import attemptConversionRoutes from '../src/routes/app/attemptConversionRoutes.js'
 import puzzleOfTheDayRoutes from '../src/routes/public/puzzleOfTheDayRoutes.js'
+import stripeWebhookRouter from '../src/routes/webhooks/stripe.js'
+import bodyParser from 'body-parser'
 
 const port = 3005
 const app = express()
@@ -28,6 +30,8 @@ const corsOptions = {
 }
 app.use(cors(corsOptions))
 
+app.use('/api/webhooks/stripe', bodyParser.raw({ type: 'application/json' }))
+app.use('/api/webhooks', stripeWebhookRouter)
 
 // Global param validation for common route params
 app.param('id', paramValidator('id', notEmpty, 'ID is required'))

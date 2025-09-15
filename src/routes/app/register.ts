@@ -5,7 +5,7 @@ const router = Router()
 
 router.post('/', async (req: Request, res: Response) => {
     const user = await createUserFromClerkId(res.locals.clerkUser)
-    return res.jsonp(user)
+    return res.json(user)
 })
 
 export default router

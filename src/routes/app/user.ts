@@ -6,7 +6,7 @@ const router = Router()
 
 router.get('/clerk/superadmin', async (req: Request, res: Response) => {
     const isUserSuperadmin = await isSuperadmin(res.locals.user as User)
-    res.jsonp(isUserSuperadmin)
+    res.json(isUserSuperadmin)
 })
 
 export default router
