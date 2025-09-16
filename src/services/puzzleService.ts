@@ -248,8 +248,8 @@ export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: stri
             // Only record completed sessions (solved or no guesses left)
             const isSessionComplete = isCorrect || updatedRemainingGuesses <= 0
 
-            if (isSessionComplete) {
-                await recordGameSession({
+            if (isSessionComplete && firstAttempt) {
+                const baseSessionData = {
                     userId: userContext.userId,
                     puzzleId,
                     startedAt: firstAttempt.createdAt,
@@ -258,8 +258,17 @@ export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: stri
                     solved: isCorrect,
                     gaveUp: false, // User didn't explicitly give up, they either solved it or ran out of guesses
                     hintsUsed: 0, // We don't track hints yet, but leaving this for future implementation
-                    solveTimeMs: isCorrect ? Date.now() - firstAttempt.createdAt.getTime() : undefined
-                })
+                }
+
+                // Only add solveTimeMs if the puzzle was solved
+                if (isCorrect) {
+                    await recordGameSession({
+                        ...baseSessionData,
+                        solveTimeMs: Date.now() - firstAttempt.createdAt.getTime()
+                    })
+                } else {
+                    await recordGameSession(baseSessionData)
+                }
             }
         } catch (statsError) {
             // Log error but don't fail the puzzle submission
@@ -348,8 +357,8 @@ export async function giveUpPuzzle(puzzleId: string, userContext: UserContext) {
             guesses: totalGuesses,
             solved: false,
             gaveUp: true,
-            hintsUsed: 0,
-            solveTimeMs: undefined // No solve time since they gave up
+            hintsUsed: 0
+            // Don't include solveTimeMs since they gave up
         })
     } catch (statsError) {
         // Log error but don't fail the give up action
