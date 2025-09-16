@@ -4,6 +4,7 @@ import {assert} from '../utils/assert.js'
 import {isSuperadmin} from '../utils/auth.js'
 import {GUESS_LIMITS, UserContext} from "../utils/fingerprint.js";
 import {ApiError} from "../utils/error.js";
+import {recordGameSession} from "./statisticsService.js";
 
 export async function getAllPuzzles() {
     const puzzles = await prisma.puzzle.findMany()
@@ -227,6 +228,45 @@ export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: stri
 
     const updatedRemainingGuesses = remainingGuesses - 1
 
+    // Record game session for authenticated users after every attempt
+    if (userContext.userId) {
+        try {
+            // Get all attempts for this user+puzzle to calculate session data
+            const allAttempts = await prisma.puzzleAttempt.findMany({
+                where: {
+                    puzzleId,
+                    userId: userContext.userId
+                },
+                orderBy: {
+                    createdAt: 'asc'
+                }
+            })
+
+            const firstAttempt = allAttempts[0]
+            const totalGuesses = allAttempts.length
+
+            // Only record completed sessions (solved or no guesses left)
+            const isSessionComplete = isCorrect || updatedRemainingGuesses <= 0
+
+            if (isSessionComplete) {
+                await recordGameSession({
+                    userId: userContext.userId,
+                    puzzleId,
+                    startedAt: firstAttempt.createdAt,
+                    completedAt: new Date(),
+                    guesses: totalGuesses,
+                    solved: isCorrect,
+                    gaveUp: false, // User didn't explicitly give up, they either solved it or ran out of guesses
+                    hintsUsed: 0, // We don't track hints yet, but leaving this for future implementation
+                    solveTimeMs: isCorrect ? Date.now() - firstAttempt.createdAt.getTime() : undefined
+                })
+            }
+        } catch (statsError) {
+            // Log error but don't fail the puzzle submission
+            console.error('Failed to record game statistics:', statsError)
+        }
+    }
+
     return {
         isCorrect,
         puzzleId: puzzle.id,
@@ -253,5 +293,73 @@ export async function getAttemptStatus(puzzleId: string, userContext: UserContex
         attemptCount,
         remainingGuesses,
         maxGuesses
+    }
+}
+
+export async function giveUpPuzzle(puzzleId: string, userContext: UserContext) {
+    assert(puzzleId, 'Puzzle ID is required')
+    assert(userContext.userId, 'Give up is only available for authenticated users')
+
+    const puzzle = await prisma.puzzle.findUnique({
+        where: {
+            id: puzzleId,
+            published: true,
+            archived: false
+        }
+    })
+
+    assert(puzzle, 'Puzzle not found or not available')
+
+    // Check if user has already solved this puzzle
+    const existingSolvedAttempt = await prisma.puzzleAttempt.findFirst({
+        where: {
+            puzzleId,
+            userId: userContext.userId,
+            isCorrect: true
+        }
+    })
+
+    if (existingSolvedAttempt) {
+        throw new ApiError(400, 'You have already solved this puzzle')
+    }
+
+    // Record game session for giving up
+    try {
+        // Get all attempts for this user+puzzle to calculate session data
+        const allAttempts = await prisma.puzzleAttempt.findMany({
+            where: {
+                puzzleId,
+                userId: userContext.userId
+            },
+            orderBy: {
+                createdAt: 'asc'
+            }
+        })
+
+        const firstAttempt = allAttempts[0]
+        const totalGuesses = allAttempts.length
+        const startTime = firstAttempt ? firstAttempt.createdAt : new Date()
+
+        await recordGameSession({
+            userId: userContext.userId,
+            puzzleId,
+            startedAt: startTime,
+            completedAt: new Date(),
+            guesses: totalGuesses,
+            solved: false,
+            gaveUp: true,
+            hintsUsed: 0,
+            solveTimeMs: undefined // No solve time since they gave up
+        })
+    } catch (statsError) {
+        // Log error but don't fail the give up action
+        console.error('Failed to record give up statistics:', statsError)
+    }
+
+    return {
+        success: true,
+        puzzleId,
+        gaveUp: true,
+        message: 'You have given up on this puzzle'
     }
 }

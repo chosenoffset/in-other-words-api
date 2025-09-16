@@ -35,6 +35,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   attempts PuzzleAttempt[]
+  gameSessions GameSession[]
+  playerStatistics PlayerStatistics?
 }
 
 enum SubscriptionStatus {
@@ -109,6 +111,7 @@ model Puzzle {
   updatedAt    DateTime  @updatedAt
 
   attempts PuzzleAttempt[]
+  gameSessions GameSession[]
 }
 
 model PuzzleAttempt {
@@ -132,4 +135,44 @@ model PuzzleAttempt {
   @@index([puzzleId, userFingerprint, createdAt])
   @@index([puzzleId, userId, createdAt])
   @@index([puzzleId, createdAt])
+}
+
+model GameSession {
+  id            String    @id @default(uuid())
+  userId        String
+  puzzleId      String
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  guesses       Int       @default(0)
+  solved        Boolean   @default(false)
+  gaveUp        Boolean   @default(false)
+  hintsUsed     Int       @default(0)
+  solveTimeMs   Int?
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  puzzle        Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([puzzleId])
+  @@index([completedAt])
+  @@index([userId, completedAt])
+}
+
+model PlayerStatistics {
+  id                String    @id @default(uuid())
+  userId            String    @unique
+  totalGames        Int       @default(0)
+  gamesWon          Int       @default(0)
+  currentStreak     Int       @default(0)
+  longestStreak     Int       @default(0)
+  averageGuesses    Float?
+  averageSolveTimeMs Int?
+  fastestSolveMs    Int?
+  lastPlayedAt      DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lastPlayedAt])
 }

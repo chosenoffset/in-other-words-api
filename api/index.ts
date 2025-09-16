@@ -12,6 +12,7 @@ import assertSuperadminMiddleware from '../src/middlewares/assertSuperadminMiddl
 import registerRoutes from '../src/routes/app/register.js'
 import userRoutes from '../src/routes/app/user.js'
 import attemptConversionRoutes from '../src/routes/app/attemptConversionRoutes.js'
+import statisticsRoutes from '../src/routes/app/statisticsRoutes.js'
 import puzzleOfTheDayRoutes from '../src/routes/public/puzzleOfTheDayRoutes.js'
 import stripeWebhookRouter from '../src/routes/webhooks/stripe.js'
 import bodyParser from 'body-parser'
@@ -55,6 +56,7 @@ appRouter.use(authenticateUserMiddleware)
 appRouter.use('/users', userRoutes)
 appRouter.use('/register', registerRoutes)
 appRouter.use('/attempts', attemptConversionRoutes)
+appRouter.use('/stats', statisticsRoutes)
 
 // Superadmin routes
 const superadminRouter = express.Router()

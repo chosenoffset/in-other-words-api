@@ -7,9 +7,6 @@ export default async function optionalAuthMiddleware(req: Request, res: Response
         // Get auth object from Clerk
         const auth = getAuth(req);
 
-        console.log("Entered optional auth")
-        console.log('Auth is: ', auth)
-
         // If no userId, continue without setting user
         if (!auth.userId) {
             return next();
