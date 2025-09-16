@@ -106,7 +106,7 @@ async function updatePlayerStatistics(
   const performanceMetrics = calculatePerformanceMetrics(sessions)
 
   // Get the most recent play date
-  const lastPlayedAt = sessions.length > 0 ? sessions[0].completedAt : null
+  const lastPlayedAt = sessions.length > 0 ? sessions[0]?.completedAt : null
 
   // Prepare update data - only include defined values
   const updateData: any = {
