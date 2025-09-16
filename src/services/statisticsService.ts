@@ -12,20 +12,26 @@ import {
 
 export async function recordGameSession(sessionData: GameSessionInput): Promise<void> {
   await prisma.$transaction(async (tx) => {
-    await tx.gameSession.create({
-      data: {
-        userId: sessionData.userId,
-        puzzleId: sessionData.puzzleId,
-        startedAt: sessionData.startedAt,
-        completedAt: sessionData.completedAt,
-        guesses: sessionData.guesses,
-        solved: sessionData.solved,
-        gaveUp: sessionData.gaveUp,
-        hintsUsed: sessionData.hintsUsed,
-        solveTimeMs: sessionData.solveTimeMs
-      }
-    })
+    // Build data object without undefined optional properties
+    const createData: any = {
+      userId: sessionData.userId,
+      puzzleId: sessionData.puzzleId,
+      startedAt: sessionData.startedAt,
+      guesses: sessionData.guesses,
+      solved: sessionData.solved,
+      gaveUp: sessionData.gaveUp,
+      hintsUsed: sessionData.hintsUsed
+    }
 
+    // Only add optional properties if they have values
+    if (sessionData.completedAt !== undefined) {
+      createData.completedAt = sessionData.completedAt
+    }
+    if (sessionData.solveTimeMs !== undefined) {
+      createData.solveTimeMs = sessionData.solveTimeMs
+    }
+
+    await tx.gameSession.create({ data: createData })
     await updatePlayerStatistics(sessionData.userId, tx)
   })
 }
@@ -41,17 +47,29 @@ export async function getPlayerStats(userId: string): Promise<PlayerStats> {
     return getEmptyStats()
   }
 
-  return {
+  const result: PlayerStats = {
     totalGames: stats.totalGames,
     gamesWon: stats.gamesWon,
     winRate: stats.totalGames > 0 ? (stats.gamesWon / stats.totalGames) * 100 : 0,
     currentStreak: stats.currentStreak,
-    longestStreak: stats.longestStreak,
-    averageGuesses: stats.averageGuesses || undefined,
-    averageSolveTimeMs: stats.averageSolveTimeMs || undefined,
-    fastestSolveMs: stats.fastestSolveMs || undefined,
-    lastPlayedAt: stats.lastPlayedAt || undefined
+    longestStreak: stats.longestStreak
   }
+
+  // Only add optional properties if they have values
+  if (stats.averageGuesses !== null) {
+    result.averageGuesses = stats.averageGuesses
+  }
+  if (stats.averageSolveTimeMs !== null) {
+    result.averageSolveTimeMs = stats.averageSolveTimeMs
+  }
+  if (stats.fastestSolveMs !== null) {
+    result.fastestSolveMs = stats.fastestSolveMs
+  }
+  if (stats.lastPlayedAt !== null) {
+    result.lastPlayedAt = stats.lastPlayedAt
+  }
+
+  return result
 }
 
 export async function recalculatePlayerStats(userId: string): Promise<PlayerStats> {
@@ -90,16 +108,26 @@ async function updatePlayerStatistics(
   // Get the most recent play date
   const lastPlayedAt = sessions.length > 0 ? sessions[0].completedAt : null
 
-  // Prepare update data
-  const updateData: PlayerStatisticsUpdate = {
+  // Prepare update data - only include defined values
+  const updateData: any = {
     totalGames,
     gamesWon,
     currentStreak: streakResult.currentStreak,
-    longestStreak: streakResult.longestStreak,
-    averageGuesses: performanceMetrics.averageGuesses,
-    averageSolveTimeMs: performanceMetrics.averageSolveTimeMs,
-    fastestSolveMs: performanceMetrics.fastestSolveMs,
-    lastPlayedAt
+    longestStreak: streakResult.longestStreak
+  }
+
+  // Only add optional properties if they have values
+  if (performanceMetrics.averageGuesses !== undefined) {
+    updateData.averageGuesses = performanceMetrics.averageGuesses
+  }
+  if (performanceMetrics.averageSolveTimeMs !== undefined) {
+    updateData.averageSolveTimeMs = performanceMetrics.averageSolveTimeMs
+  }
+  if (performanceMetrics.fastestSolveMs !== undefined) {
+    updateData.fastestSolveMs = performanceMetrics.fastestSolveMs
+  }
+  if (lastPlayedAt !== null) {
+    updateData.lastPlayedAt = lastPlayedAt
   }
 
   await tx.playerStatistics.upsert({
@@ -150,11 +178,7 @@ function calculatePerformanceMetrics(sessions: GameSession[]): PerformanceMetric
   const solvedSessions = sessions.filter(s => s.solved)
 
   if (solvedSessions.length === 0) {
-    return {
-      averageGuesses: undefined,
-      averageSolveTimeMs: undefined,
-      fastestSolveMs: undefined
-    }
+    return {}
   }
 
   const totalGuesses = solvedSessions.reduce((sum, s) => sum + s.guesses, 0)
@@ -171,11 +195,19 @@ function calculatePerformanceMetrics(sessions: GameSession[]): PerformanceMetric
     fastestSolveMs = Math.min(...sessionsWithTime.map(s => s.solveTimeMs!))
   }
 
-  return {
-    averageGuesses: Math.round(averageGuesses * 100) / 100, // Round to 2 decimal places
-    averageSolveTimeMs,
-    fastestSolveMs
+  const result: PerformanceMetrics = {
+    averageGuesses: Math.round(averageGuesses * 100) / 100 // Round to 2 decimal places
   }
+
+  // Only add optional properties if they have values
+  if (averageSolveTimeMs !== undefined) {
+    result.averageSolveTimeMs = averageSolveTimeMs
+  }
+  if (fastestSolveMs !== undefined) {
+    result.fastestSolveMs = fastestSolveMs
+  }
+
+  return result
 }
 
 function getEmptyStats(): PlayerStats {
@@ -184,11 +216,7 @@ function getEmptyStats(): PlayerStats {
     gamesWon: 0,
     winRate: 0,
     currentStreak: 0,
-    longestStreak: 0,
-    averageGuesses: undefined,
-    averageSolveTimeMs: undefined,
-    fastestSolveMs: undefined,
-    lastPlayedAt: undefined
+    longestStreak: 0
   }
 }
 
