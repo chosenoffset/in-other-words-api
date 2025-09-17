@@ -9,6 +9,7 @@ import {
   StreakCalculationResult,
   PerformanceMetrics
 } from '../types/statistics.js'
+import { userHasActiveSubscription } from '../utils/subscription.js'
 
 export async function recordGameSession(sessionData: GameSessionInput): Promise<void> {
   await prisma.$transaction(async (tx) => {
@@ -37,9 +38,7 @@ export async function recordGameSession(sessionData: GameSessionInput): Promise<
 }
 
 export async function getPlayerStats(loggedInUser: User): Promise<PlayerStats> {
-  const userHasActiveSubscription = await prisma.stripeSubscription.findFirst({
-    where: { userId: loggedInUser.id, status: SubscriptionStatus.ACTIVE }
-  })
+  const subscribed = await userHasActiveSubscription(loggedInUser.id)
 
   const stats = await prisma.playerStatistics.findUnique({
     where: { userId: loggedInUser.id }
@@ -58,16 +57,16 @@ export async function getPlayerStats(loggedInUser: User): Promise<PlayerStats> {
   }
 
   // Only add optional properties if they have values and user has an active subscription
-  if (stats.averageGuesses !== null && userHasActiveSubscription) {
+  if (stats.averageGuesses !== null && subscribed) {
     result.averageGuesses = stats.averageGuesses
   }
-  if (stats.averageSolveTimeMs !== null && userHasActiveSubscription) {
+  if (stats.averageSolveTimeMs !== null && subscribed) {
     result.averageSolveTimeMs = stats.averageSolveTimeMs
   }
-  if (stats.fastestSolveMs !== null && userHasActiveSubscription) {
+  if (stats.fastestSolveMs !== null && subscribed) {
     result.fastestSolveMs = stats.fastestSolveMs
   }
-  if (stats.lastPlayedAt !== null && userHasActiveSubscription) {
+  if (stats.lastPlayedAt !== null && subscribed) {
     result.lastPlayedAt = stats.lastPlayedAt
   }
 
