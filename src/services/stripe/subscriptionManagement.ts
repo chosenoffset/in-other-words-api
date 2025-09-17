@@ -34,8 +34,8 @@ export async function createStripeSubscription(loggedInUser: User) {
         },
     ]
 
-    const successUrl = `${process.env.FRONTEND_URL}/checkout-success?transactionId=${transaction.id}`
-    const cancelUrl = `${process.env.FRONTEND_URL}/checkout-cancel?transactionId=${transaction.id}`
+    const successUrl = `${process.env.APP_URL}/checkout-success?transactionId=${transaction.id}`
+    const cancelUrl = `${process.env.APP_URL}/checkout-cancel?transactionId=${transaction.id}`
     const metadata = {
         transactionId: transaction.id,
     }
@@ -76,7 +76,7 @@ export async function createStripeSubscription(loggedInUser: User) {
 export async function createBillingPortalSession(loggedInUser: User) {
     const portalSession = await stripe.billingPortal.sessions.create({
         customer: loggedInUser.stripeCustomerId!,
-        return_url: `${process.env.APP_URL}/account`,
+        return_url: `${process.env.APP_URL}/profile`,
     });
     assert(portalSession, 'Failed to create billing portal session', 500);
     return { redirectUrl: portalSession.url };

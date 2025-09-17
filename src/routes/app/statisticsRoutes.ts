@@ -14,25 +14,12 @@ const router = Router();
  * Get current user's statistics
  */
 router.get('/player', async (req: Request, res: Response) => {
-  try {
-    const user = res.locals.user as User;
-
-    if (!user?.id) {
-      throw new ApiError(401, 'User not authenticated');
-    }
-
-    const stats = await getPlayerStats(user.id);
+    const stats = await getPlayerStats(res.locals.user as User);
 
     res.json({
       success: true,
       data: stats
     });
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(500, 'Failed to retrieve player statistics');
-  }
 });
 
 /**
@@ -40,26 +27,13 @@ router.get('/player', async (req: Request, res: Response) => {
  * Force recalculation of current user's statistics (useful for development/debugging)
  */
 router.post('/recalculate', async (req: Request, res: Response) => {
-  try {
-    const user = res.locals.user as User;
-
-    if (!user?.id) {
-      throw new ApiError(401, 'User not authenticated');
-    }
-
-    const stats = await recalculatePlayerStats(user.id);
+ const stats = await recalculatePlayerStats(res.locals.user as User);
 
     res.json({
       success: true,
       message: 'Statistics recalculated successfully',
       data: stats
     });
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(500, 'Failed to recalculate player statistics');
-  }
 });
 
 /**
