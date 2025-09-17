@@ -1,4 +1,4 @@
-import { Prisma, GameSession } from '@prisma/client'
+import { Prisma, GameSession, User, SubscriptionStatus } from '@prisma/client'
 import { prisma } from '../config/prisma.js'
 import { assert } from '../utils/assert.js'
 import { ApiError } from '../utils/error.js'
@@ -36,11 +36,13 @@ export async function recordGameSession(sessionData: GameSessionInput): Promise<
   })
 }
 
-export async function getPlayerStats(userId: string): Promise<PlayerStats> {
-  assert(userId, 'User ID is required')
+export async function getPlayerStats(loggedInUser: User): Promise<PlayerStats> {
+  const userHasActiveSubscription = await prisma.stripeSubscription.findFirst({
+    where: { userId: loggedInUser.id, status: SubscriptionStatus.ACTIVE }
+  })
 
   const stats = await prisma.playerStatistics.findUnique({
-    where: { userId }
+    where: { userId: loggedInUser.id }
   })
 
   if (!stats) {
@@ -55,31 +57,31 @@ export async function getPlayerStats(userId: string): Promise<PlayerStats> {
     longestStreak: stats.longestStreak
   }
 
-  // Only add optional properties if they have values
-  if (stats.averageGuesses !== null) {
+  // Only add optional properties if they have values and user has an active subscription
+  if (stats.averageGuesses !== null && userHasActiveSubscription) {
     result.averageGuesses = stats.averageGuesses
   }
-  if (stats.averageSolveTimeMs !== null) {
+  if (stats.averageSolveTimeMs !== null && userHasActiveSubscription) {
     result.averageSolveTimeMs = stats.averageSolveTimeMs
   }
-  if (stats.fastestSolveMs !== null) {
+  if (stats.fastestSolveMs !== null && userHasActiveSubscription) {
     result.fastestSolveMs = stats.fastestSolveMs
   }
-  if (stats.lastPlayedAt !== null) {
+  if (stats.lastPlayedAt !== null && userHasActiveSubscription) {
     result.lastPlayedAt = stats.lastPlayedAt
   }
 
   return result
 }
 
-export async function recalculatePlayerStats(userId: string): Promise<PlayerStats> {
-  assert(userId, 'User ID is required')
+export async function recalculatePlayerStats(loggedInUser: User): Promise<PlayerStats> {
+  assert(loggedInUser, 'User is required')
 
   await prisma.$transaction(async (tx) => {
-    await updatePlayerStatistics(userId, tx)
+    await updatePlayerStatistics(loggedInUser.id, tx)
   })
 
-  return getPlayerStats(userId)
+  return getPlayerStats(loggedInUser)
 }
 
 async function updatePlayerStatistics(

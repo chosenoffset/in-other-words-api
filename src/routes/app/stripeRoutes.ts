@@ -13,3 +13,5 @@ router.post('/billing-portal', async (req: Request, res: Response) => {
     const response = await createBillingPortalSession(res.locals.user)
     return res.json({ redirectUrl: response.redirectUrl })
 })
+
+export default router
