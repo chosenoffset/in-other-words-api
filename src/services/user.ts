@@ -33,3 +33,14 @@ export async function createUserFromClerkId(clerkUser: SessionAuthObject) {
 export async function isSuperadmin(user: User) {
     return user.role === UserRole.SUPERADMIN
 }
+
+export async function getUserWithSubscription(user: User) {
+    const userWithSubscription = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+            stripeSubscription: true
+        }
+    })
+    assert(userWithSubscription, 'User not found', 404)
+    return userWithSubscription
+}

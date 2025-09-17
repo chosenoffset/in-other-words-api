@@ -17,6 +17,7 @@ import puzzleOfTheDayRoutes from '../src/routes/public/puzzleOfTheDayRoutes.js'
 import stripeWebhookRouter from '../src/routes/webhooks/stripe.js'
 import bodyParser from 'body-parser'
 import stripeRoutes from '../src/routes/app/stripeRoutes.js'
+import transactionRoutes from '../src/routes/app/transactionRoutes.js'
 
 const port = 3005
 const app = express()
@@ -59,6 +60,7 @@ appRouter.use('/register', registerRoutes)
 appRouter.use('/attempts', attemptConversionRoutes)
 appRouter.use('/stats', statisticsRoutes)
 appRouter.use('/stripe', stripeRoutes)
+appRouter.use('/transactions', transactionRoutes)
 
 // Superadmin routes
 const superadminRouter = express.Router()
