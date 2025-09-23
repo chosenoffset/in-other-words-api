@@ -23,9 +23,6 @@ const port = 3005
 const app = express()
 const router = express.Router()
 
-app.use(express.json())
-app.use(clerkMiddleware())
-
 const corsOptions = {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -35,6 +32,9 @@ app.use(cors(corsOptions))
 
 app.use('/api/webhooks/stripe', bodyParser.raw({ type: 'application/json' }))
 app.use('/api/webhooks', stripeWebhookRouter)
+
+app.use(express.json())
+app.use(clerkMiddleware())
 
 // Global param validation for common route params
 app.param('id', paramValidator('id', notEmpty, 'ID is required'))
