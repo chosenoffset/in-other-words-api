@@ -1,5 +1,11 @@
 import express, {Router} from 'express'
-import {getAttemptStatus, getPuzzleOfTheDay, submitPuzzleAnswer, giveUpPuzzle} from '../../services/puzzleService.js'
+import {
+    getAttemptStatus,
+    getPuzzleOfTheDay,
+    submitPuzzleAnswer,
+    giveUpPuzzle,
+    getAllHintsForPuzzle, getHintForPuzzle
+} from '../../services/puzzleService.js'
 import {extractUserContext, UserContext} from "../../utils/fingerprint.js";
 import optionalAuthMiddleware from '../../middlewares/optionalAuthMiddleware.js'
 
@@ -35,6 +41,28 @@ router.get('/attempts/:id', async (req, res): Promise<void> => {
     res.json({
         success: true,
         data: attemptStatus
+    })
+})
+
+router.get('/hints/:id', async (req, res): Promise<void> => {
+    const puzzleId: string = req.params.id
+    const hints = await getAllHintsForPuzzle(puzzleId)
+
+    res.json({
+        success: true,
+        data: hints
+    })
+})
+
+router.get('/:id/hint/:hintId', async (req, res): Promise<void> => {
+    const puzzleId: string = req.params.id
+    const hintId: string = req.params.hintId
+
+    const hint: string = await getHintForPuzzle(puzzleId, Number(hintId))
+
+    res.json({
+        success: true,
+        data: hint
     })
 })
 

@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
 }
 
 datasource db {
@@ -23,19 +24,19 @@ enum PuzzleCategory {
 }
 
 model User {
-  id      String   @id @default(uuid())
-  clerkId String   @unique
-  role    UserRole @default(USER)
-  stripeCustomerId String? @unique
+  id                 String              @id @default(uuid())
+  clerkId            String              @unique
+  role               UserRole            @default(USER)
+  stripeCustomerId   String?             @unique
   stripeSubscription StripeSubscription?
-  transactions Transaction[]
+  transactions       Transaction[]
 
   archived  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  attempts PuzzleAttempt[]
-  gameSessions GameSession[]
+  attempts         PuzzleAttempt[]
+  gameSessions     GameSession[]
   playerStatistics PlayerStatistics?
 }
 
@@ -56,17 +57,17 @@ enum BillingInterval {
 }
 
 model StripeSubscription {
-  id String @id @default(uuid())
-  stripeSubscriptionId String? @unique
+  id                       String             @id @default(uuid())
+  stripeSubscriptionId     String?            @unique
   stripeSubscriptionItemId String? // Stripe subscription item ID for updating quantity
-  status SubscriptionStatus @default(INCOMPLETE)
-  billingInterval BillingInterval @default(MONTHLY)
-  quantity Int @default(0)
-  userId String @unique
-  user User @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  transactions Transaction[]
+  status                   SubscriptionStatus @default(INCOMPLETE)
+  billingInterval          BillingInterval    @default(MONTHLY)
+  quantity                 Int                @default(0)
+  userId                   String             @unique
+  user                     User               @relation(fields: [userId], references: [id])
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  transactions             Transaction[]
 }
 
 enum TransactionStatus {
@@ -81,22 +82,22 @@ enum TransactionType {
 }
 
 model Transaction {
-  id String @id @default(uuid())
-  checkoutSessionId String? @unique
-  userId String
-  user User @relation(fields: [userId], references: [id])
-  amount Int
-  currency String
-  status TransactionStatus @default(PENDING)
-  type TransactionType @default(SUBSCRIPTION)
-  subscriptionId String?
-  subscription StripeSubscription? @relation(fields: [subscriptionId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String              @id @default(uuid())
+  checkoutSessionId String?             @unique
+  userId            String
+  user              User                @relation(fields: [userId], references: [id])
+  amount            Int
+  currency          String
+  status            TransactionStatus   @default(PENDING)
+  type              TransactionType     @default(SUBSCRIPTION)
+  subscriptionId    String?
+  subscription      StripeSubscription? @relation(fields: [subscriptionId], references: [id])
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
 }
 
 model Puzzle {
-  id       String   @id @default(uuid())
+  id       String         @id @default(uuid())
   question String
   answer   String
   hints    String[]
@@ -110,27 +111,27 @@ model Puzzle {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  attempts PuzzleAttempt[]
+  attempts     PuzzleAttempt[]
   gameSessions GameSession[]
 }
 
 model PuzzleAttempt {
-  id               String   @id @default(uuid())
-  puzzleId         String
-  puzzle           Puzzle   @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
-  
+  id       String @id @default(uuid())
+  puzzleId String
+  puzzle   Puzzle @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+
   // For authenticated users
-  userId           String?
-  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // For anonymous users (hash of IP + User-Agent + puzzle ID + daily salt)
-  userFingerprint  String?
-  
-  submittedAnswer  String
-  isCorrect        Boolean
-  ipAddress        String?
-  userAgent        String?
-  createdAt        DateTime @default(now())
+  userFingerprint String?
+
+  submittedAnswer String
+  isCorrect       Boolean
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
 
   @@index([puzzleId, userFingerprint, createdAt])
   @@index([puzzleId, userId, createdAt])
@@ -138,19 +139,19 @@ model PuzzleAttempt {
 }
 
 model GameSession {
-  id            String    @id @default(uuid())
-  userId        String
-  puzzleId      String
-  startedAt     DateTime  @default(now())
-  completedAt   DateTime?
-  guesses       Int       @default(0)
-  solved        Boolean   @default(false)
-  gaveUp        Boolean   @default(false)
-  hintsUsed     Int       @default(0)
-  solveTimeMs   Int?
+  id          String    @id @default(uuid())
+  userId      String
+  puzzleId    String
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  guesses     Int       @default(0)
+  solved      Boolean   @default(false)
+  gaveUp      Boolean   @default(false)
+  hintsUsed   Int       @default(0)
+  solveTimeMs Int?
 
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  puzzle        Puzzle    @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  puzzle Puzzle @relation(fields: [puzzleId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([puzzleId])
@@ -159,20 +160,20 @@ model GameSession {
 }
 
 model PlayerStatistics {
-  id                String    @id @default(uuid())
-  userId            String    @unique
-  totalGames        Int       @default(0)
-  gamesWon          Int       @default(0)
-  currentStreak     Int       @default(0)
-  longestStreak     Int       @default(0)
-  averageGuesses    Float?
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  totalGames         Int       @default(0)
+  gamesWon           Int       @default(0)
+  currentStreak      Int       @default(0)
+  longestStreak      Int       @default(0)
+  averageGuesses     Float?
   averageSolveTimeMs Int?
-  fastestSolveMs    Int?
-  lastPlayedAt      DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  fastestSolveMs     Int?
+  lastPlayedAt       DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([lastPlayedAt])
 }

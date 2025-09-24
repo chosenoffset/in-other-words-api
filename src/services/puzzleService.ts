@@ -17,7 +17,6 @@ export async function getPuzzleOfTheDay() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // First check for manually scheduled puzzle for today
     let puzzle = await prisma.puzzle.findFirst({
         where: {
             displayDate: today,
@@ -26,64 +25,47 @@ export async function getPuzzleOfTheDay() {
         }
     })
 
-    if (puzzle) {
-        // Don't return the answer for daily puzzle
-        return {
-            id: puzzle.id,
-            question: puzzle.question,
-            hints: puzzle.hints,
-            category: puzzle.category,
-        }
-    }
-
-    // Fallback to algorithmic selection
-    const allPuzzles = await prisma.puzzle.findMany({
-        where: {
-            published: true,
-            archived: false,
-            displayOrder: {not: null}
-        },
-        orderBy: {
-            displayOrder: 'asc'
-        }
-    })
-
-    if (allPuzzles.length === 0) {
-        // Final fallback to any published puzzle
-        puzzle = await prisma.puzzle.findFirst({
+    if (puzzle === null) {
+        const allPuzzles = await prisma.puzzle.findMany({
             where: {
                 published: true,
-                archived: false
+                archived: false,
+                displayOrder: {not: null}
             },
             orderBy: {
-                createdAt: 'asc'
+                displayOrder: 'asc'
             }
         })
 
-        assert(puzzle, 'No published puzzles available')
-        // Don't return the answer for daily puzzle
-        return {
-            id: puzzle.id,
-            question: puzzle.question,
-            hints: puzzle.hints,
-            category: puzzle.category,
+        if (allPuzzles.length === 0) {
+            // Final fallback to any published puzzle
+            puzzle = await prisma.puzzle.findFirst({
+                where: {
+                    published: true,
+                    archived: false
+                },
+                orderBy: {
+                    createdAt: 'asc'
+                }
+            })
+        } else {
+            const epochDate = new Date('2024-01-01')
+            const daysSinceEpoch = Math.floor((today.getTime() - epochDate.getTime()) / (1000 * 60 * 60 * 24))
+            const puzzleIndex = daysSinceEpoch % allPuzzles.length
+
+            if (allPuzzles[puzzleIndex] !== undefined) {
+                puzzle = allPuzzles[puzzleIndex]
+            }
         }
     }
 
-    // Use days since epoch to select puzzle deterministically
-    const epochDate = new Date('2024-01-01')
-    const daysSinceEpoch = Math.floor((today.getTime() - epochDate.getTime()) / (1000 * 60 * 60 * 24))
-    const puzzleIndex = daysSinceEpoch % allPuzzles.length
+    assert(puzzle, 'No puzzles found.')
 
-    const fullPuzzleOfTheDay = allPuzzles[puzzleIndex]
-    assert(fullPuzzleOfTheDay, 'No puzzle found')
-
-    // Don't return the answer here
     return {
-        id: fullPuzzleOfTheDay.id,
-        question: fullPuzzleOfTheDay.question,
-        hints: fullPuzzleOfTheDay.hints,
-        category: fullPuzzleOfTheDay.category,
+        id: puzzle.id,
+        question: puzzle.question,
+        num_hints: puzzle.hints.length,
+        category: puzzle.category,
     }
 }
 
@@ -185,6 +167,34 @@ export async function getScheduledPuzzles(loggedInUser: User) {
             displayDate: 'asc'
         }
     })
+}
+
+export async function getHintForPuzzle(puzzleId: string, hintIndex: number): Promise<string> {
+    const puzzle = await prisma.puzzle.findUnique({
+        where: {
+            id: puzzleId
+        }
+    })
+
+    assert(puzzle, 'Puzzle not found or not available')
+
+    const hint = puzzle.hints[hintIndex]
+
+    assert(hint, "No hint for given index!")
+
+    return hint
+}
+
+export async function getAllHintsForPuzzle(puzzleId: string): Promise<string[]> {
+    const puzzle = await prisma.puzzle.findUnique({
+        where: {
+            id: puzzleId
+        }
+    })
+
+    assert(puzzle, 'Puzzle not found or not available')
+
+    return puzzle.hints
 }
 
 export async function submitPuzzleAnswer(puzzleId: string, submittedAnswer: string, userContext: UserContext) {
