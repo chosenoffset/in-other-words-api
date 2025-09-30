@@ -382,3 +382,20 @@ export async function giveUpPuzzle(puzzleId: string, userContext: UserContext) {
         message: 'You have given up on this puzzle'
     }
 }
+
+export async function resetUserAttempts(userId: string, loggedInUser: User) {
+    isSuperadmin(loggedInUser)
+    assert(userId, 'User ID is required')
+
+    const result = await prisma.puzzleAttempt.deleteMany({
+        where: {
+            userId
+        }
+    })
+
+    return {
+        success: true,
+        deletedCount: result.count,
+        message: `Successfully reset all puzzle attempts for user ${userId}`
+    }
+}

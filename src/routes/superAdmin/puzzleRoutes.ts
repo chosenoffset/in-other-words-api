@@ -1,5 +1,5 @@
 import express from 'express'
-import { getAllPuzzles, getPuzzleById, createPuzzle, updatePuzzle, deletePuzzle, softDeletePuzzle, schedulePuzzleForDate, setDisplayOrder, getScheduledPuzzles } from '../../services/puzzleService.js'
+import { getAllPuzzles, getPuzzleById, createPuzzle, updatePuzzle, deletePuzzle, softDeletePuzzle, schedulePuzzleForDate, setDisplayOrder, getScheduledPuzzles, resetUserAttempts } from '../../services/puzzleService.js'
 import { Request, Response } from 'express'
 
 const router = express.Router()
@@ -62,6 +62,11 @@ router.put('/:id/display-order', async (req: Request<{ id: string }>, res: Respo
         success: true,
         data: puzzle
     })
+})
+
+router.delete('/user/:userId/attempts', async (req: Request<{ userId: string }>, res: Response) => {
+    const result = await resetUserAttempts(req.params.userId, res.locals.user)
+    res.jsonp(result)
 })
 
 export default router
