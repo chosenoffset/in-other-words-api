@@ -42,7 +42,6 @@ router.post("/stripe", async (req, res) => {
                 })
                 
                 if (!transaction) {
-                    // TODO: we should log this in the future...
                     console.error('Transaction not found')
                     break
                 }
